@@ -1,11 +1,13 @@
 import os
 
-
 PATH_TO_GRAMMAR = 'input.txt'
-#PATH_TO_GRAMMAR = 'D://input.txt'
+# PATH_TO_GRAMMAR = 'D://input.txt'
 
 write_operations = 0
 read_operations = 0
+tree = ''
+tree1 = ''
+
 
 def loadGrammar(relative_path):
     global_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
@@ -22,22 +24,25 @@ def loadGrammar(relative_path):
         rules = savefile.read().split('\n')
 
         for line in rules:
-            rule = line.replace(' ', '')#.replace('\n', '')
+            rule = line.replace(' ', '')  # .replace('\n', '')
 
             starting = rule[0]
 
-            assert(starting.isupper())
-            assert(rule[1:3] == '->')
+            assert (starting.isupper())
+            assert (rule[1:3] == '->')
 
             right = rule[3:].split('|')
-        
+
             for var in right:
                 grammar.append(starting + var)
 
     if (not err):
-            savefile.close()
+        savefile.close()
     return grammar, err
 
+
+def makeNice(rule):
+    return rule[0] + '->' + rule[1:]
 
 
 def movePoint2right(rule):
@@ -46,13 +51,12 @@ def movePoint2right(rule):
     i = rule.index('.')
     read_operations += len(rule)
 
-    return rule[:i] + rule[i+1] + rule[i] + rule[i+2:]
-
+    return rule[:i] + rule[i + 1] + rule[i] + rule[i + 2:]
 
 
 def canMovePoint(rule):
-    #so . is not last symb of rule
-    #space separates rule and index
+    # so . is not last symb of rule
+    # space separates rule and index
 
     global read_operations
 
@@ -63,20 +67,22 @@ def canMovePoint(rule):
 def scan(D, j, word):
     global write_operations
     global read_operations
+    global tree
 
     if j == 0:
         return D
-    for rule in D[j-1]:                                                         #[A→α⋅aβ,i]∈Dj−1
+    for rule in D[j - 1]:  # [A→α⋅aβ,i]∈Dj−1
         read_operations += 1
 
-        a = word[j-1]
+        a = word[j - 1]
         read_operations += 1
 
-        if a.islower() and a == rule[rule.index('.') + 1]:                      # a == wj−1
+        if a.islower() and a == rule[rule.index('.') + 1]:  # a == wj−1
             read_operations += rule.index('.')
 
             newrule = movePoint2right(rule)
-            D[j].add(newrule)                                                   #Dj  ∪= [A→αa⋅β,i]
+            D[j].add(newrule)
+            tree += '\n j = ' + str(j) + ' scan: ' + makeNice(newrule) + ' from ' + makeNice(rule)  # Dj  ∪= [A→αa⋅β,i]
             write_operations += 1
     return D
 
@@ -84,13 +90,14 @@ def scan(D, j, word):
 def complete(D, j, word):
     global write_operations
     global read_operations
+    global tree
 
     modified = False
     Djadd = set()
-    for rule in D[j]:                                                           #[B→η ⋅,i]∈Dj
+    for rule in D[j]:  # [B→η ⋅,i]∈Dj
         read_operations += 1
 
-        if not canMovePoint(rule):                                              
+        if not canMovePoint(rule):
             i = int(rule[rule.index(' ') + 1:])
             read_operations += rule.index('.')
 
@@ -98,17 +105,19 @@ def complete(D, j, word):
             read_operations += 1
             # no need to check if B is upper or digit because all rules start in grammar start from upper
 
-            for rule2 in D[i]:                                                  #[A→α⋅Bβ,j]∈Di
+            for rule2 in D[i]:  # [A→α⋅Bβ,j]∈Di
                 read_operations += 1
 
                 if rule2[rule2.index('.') + 1] == B:
                     read_operations += rule2.index('.')
-                    
+
                     newrule = movePoint2right(rule2)
 
                     read_operations += 1
                     if newrule not in D[j]:
-                        Djadd.add(newrule)                                      #Dj  ∪= [A→αB⋅β,k]
+                        Djadd.add(newrule)
+                        tree += '\n j = ' + str(j) + ' complete: ' + makeNice(newrule) + ' from ' + makeNice(
+                            rule) + ' and ' + makeNice(rule2)  # Dj  ∪= [A→αB⋅β,k]
                         write_operations += 1
 
     for newrule in Djadd:
@@ -121,10 +130,11 @@ def complete(D, j, word):
 def predict(D, j, grammar, word):
     global write_operations
     global read_operations
+    global tree
 
     modified = False
     Djadd = set()
-    for rule in D[j]:                                                           #[A→α⋅Bβ,i]∈Dj
+    for rule in D[j]:  # [A→α⋅Bβ,i]∈Dj
         read_operations += 1
 
         if canMovePoint(rule):
@@ -132,15 +142,17 @@ def predict(D, j, grammar, word):
             read_operations += rule.index('.')
             # no need to check if B is upper because all rules start in grammar start from upper
 
-            for rule2 in grammar:                                               #(B→η)∈P
+            for rule2 in grammar:  # (B→η)∈P
                 read_operations += 1
 
                 if rule2[0] == B:
                     read_operations += 1
-                    newrule = B + '.' + rule2[1:] + ' ' + str(j)                  
+                    newrule = B + '.' + rule2[1:] + ' ' + str(j)
                     read_operations += 1
                     if newrule not in D[j]:
-                        Djadd.add(newrule)                                      #Dj  ∪= [B→⋅ η,j]
+                        Djadd.add(newrule)
+                        tree += '\n j = ' + str(j) + ' complete: ' + makeNice(newrule) + ' from ' + makeNice(
+                            rule) + ' and ' + makeNice(rule2)
                         write_operations += 1
 
     for newrule in Djadd:
@@ -153,30 +165,47 @@ def predict(D, j, grammar, word):
 def earley(grammar, word):
     global write_operations
     global read_operations
-    
+    global tree1
+
     n = len(word)
-    D = [set() for i in range(n+1)]
+    D = [set() for i in range(n + 1)]
 
     D[0].add('Z.S 0')
     write_operations += 1
-    
-    for j in range(n+1):
-       D = scan(D, j, word)
 
-       Dj_changes = True
-       while Dj_changes:
-           D, mod1 = complete(D, j, word)
-           D, mod2 = predict(D, j, grammar, word)
-           Dj_changes = mod1 or mod2
+    for j in range(n + 1):
+        D = scan(D, j, word)
 
+        Dj_changes = True
+        while Dj_changes:
+            D, mod1 = complete(D, j, word)
+            D, mod2 = predict(D, j, grammar, word)
+            Dj_changes = mod1 or mod2
+
+    tree1 += "\n note: Z is equivalent for S' \n"
+    # print()
+    # print("note: Z is equivalent for S'")
+    # print()
     for j in range(len(D)):
-        print('ZS. 0' in D[j], j, D[j])
+        tree1 += '\n' + str('ZS. 0' in D[j]) + str(j) + ' {'
+        # print('ZS. 0' in D[j], j, end = ' {')
+        for k, rule in enumerate(D[j]):
+            if k == len(D[j]) - 1:
+                tree1 += "'" + makeNice(rule) + "'}"
+                # print("'", makeNice(rule), "'}", sep = '')
+            else:
+                tree1 += "'" + makeNice(rule) + "',"
+                # print("'", makeNice(rule), "',", sep = '', end = ' ')
     return 'ZS. 0' in D[n]
 
 
 def start(word, path_to_grammar):
     global write_operations
     global read_operations
+    global tree
+    global tree1
+    tree = ''
+    tree1 = ''
     write_operations = 0
     read_operations = 0
     grammar, err = loadGrammar(path_to_grammar)
@@ -191,14 +220,16 @@ def start(word, path_to_grammar):
             out = '\nСтрока не выводима из грамматики\n'
         out += str(read_operations) + ' операций считывания памяти\n'
         out += str(write_operations) + ' операций записи в память\n'
+        out += '\n' + tree + '\n'
+        out += '\n' + tree1 + '\n'
     return out
 
-   # rez = earley(grammar, word)
-   # if rez:
-   #     print('String is reachable')
-   # else:
-   #     print('String is not reachable')
-   # print(read_operations, 'memory read operations')
-   # print(write_operations, 'memory write operations')
+# rez = earley(grammar, word)
+# if rez:
+#     print('String is reachable')
+# else:
+#     print('String is not reachable')
+# print(read_operations, 'memory read operations')
+# print(write_operations, 'memory write operations')
 
 

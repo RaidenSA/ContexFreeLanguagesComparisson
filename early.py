@@ -8,7 +8,6 @@ read_operations = 0
 tree = ''
 tree1 = ''
 
-
 def loadGrammar(relative_path):
     global_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
     err = 0

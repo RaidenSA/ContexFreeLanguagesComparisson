@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabe
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import pyqtSlot, QCoreApplication
 
-
 class Ui_MainWindow(object):
 
     def setupUi(self, windowMain):

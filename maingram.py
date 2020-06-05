@@ -7,7 +7,6 @@ import uigram
 import cyk
 import early
 
-
 class Connection(QMainWindow, uigram.Ui_MainWindow):
 
     def __init__(self):

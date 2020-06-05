@@ -4,7 +4,6 @@ import os
 err = 0
 tree = ''
 
-
 class Tree:
     used = set()
     globalIndex = 0
